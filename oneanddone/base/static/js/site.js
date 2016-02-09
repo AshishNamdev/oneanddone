@@ -123,3 +123,17 @@ $(function () {
     });
   }
 });
+
+// To support datatables for metrics
+$(function() {
+  $('.dataTable.metrics-listing').DataTable(
+    {
+      bSortCellsTop: true,
+      info: false,
+      order: [ 2, 'desc' ],
+      orderClasses: true,
+      paging: false,
+      scrollY: 400
+    }
+  );
+});

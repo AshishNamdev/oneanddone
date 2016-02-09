@@ -30,6 +30,33 @@ h4, .billboard h4 {
 p {
     line-height: 1.5;
 }
+pre,
+code {
+    background-color: #666;
+    color: #F3F1EA;
+    font-size: 14px;
+    padding: 1px 4px;
+}
+
+.pill,
+.pill:link,
+.pill:visited {
+    border: 1px solid #d0d0d0;
+    background: #fff;
+    padding: (@baseLine / 5) @baseFontSize;
+    color: @textColorSecondary;
+    font-weight: normal;
+    text-shadow: none;
+    @shadow: 0 0 12px rgba(230,230,230,0.2) inset, 0 -2px #e8e8e8 inset;
+    .box-shadow(@shadow);
+    .border-radius(120px);
+    &:hover,
+    &:focus {
+        color: @textColorSecondary;
+        .box-shadow(@shadow);
+    }
+}
+
 .home main {
     position: relative;
     margin-top: 3%;
@@ -150,6 +177,7 @@ footer {
         color: #AE7200;
         background-color: #FBEE85;
         border-color: #AFA239;
+        display: none;
     }
 
     &.error {
@@ -166,7 +194,7 @@ footer {
 }
 .feedback-form {
     width: 95%;
-    text-align: right;
+    text-align: left;
     label:first-child {
         .visually-hidden;
     }
@@ -175,6 +203,9 @@ footer {
     }
     .no-feedback {
         margin-right: 1rem;
+    }
+    .right {
+        text-align: right;
     }
 }
 .home #colophon {
@@ -201,19 +232,22 @@ footer {
     }
 }
 .actions-container {
+    margin-top: 10px;
     text-align: right;
     form {
         display: inline-block;
-        margin-left: .5rem;
         vertical-align: top;
     }
     .without-message {
         display: inline-block;
-        margin-left: .5rem;
         vertical-align: top;
         a {
-            padding-top: 7px;
-            padding-bottom: 6px;
+              line-height: 1.2;
+	    }
+        @media screen and (-webkit-min-device-pixel-ratio:0) {
+            a {
+                line-height: 1.1;
+            }
         }
     }
     .with-message {
@@ -262,8 +296,9 @@ footer {
 }
 .task-filters,
 .task-list-container {
-    .span(5);
-    margin-bottom: 18px;
+    float: left;
+    margin: 0 5px 18px;
+    width: 45%;
     h3 {
         text-align: left;
     }
@@ -345,7 +380,7 @@ section[class *="-section"] {
         font-family: "Icons";
         font-size: 120%;
         font-style: normal;
-        font-variant: : normal;
+        font-variant: normal;
         font-weight: normal;
         speak: none;
         text-transform: none;
@@ -458,7 +493,7 @@ section[class *="-section"] {
 
 /* Task activity listing */
 
-.activity-listing {
+.activity-listing, .metrics-listing {
     width: 100%;
     margin-top: 5px;
 
@@ -532,5 +567,49 @@ table.activity-listing thead th {
             background-image: url(/static/img/ui/arrow-active-down.png);
         }
 
+    }
+}
+
+table.metrics-listing th,
+table.metrics-listing td {
+    text-align: right;
+}
+
+table.metrics-listing th.title,
+table.metrics-listing td.title,
+table.metrics-listing tr.title th {
+    text-align: left;
+}
+
+div.row h2 {
+    margin-top: 10px;
+}
+
+/* Task detail */
+.verify-task-fieldset {
+    border: 1px solid;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.latest-communication {
+    font-weight: bold;
+}
+
+div.task-status-box {
+    margin: 5px 0px 5px 0px;
+    span.task-status-box {
+        border: 1px solid;
+        padding: 2px 4px 2px 4px;
+        .needs-action {
+            font-weight: bold;
+        }
+    }
+}
+
+.how-to-verify {
+    margin-top: 10px;
+    div {
+        font-weight: bold;
     }
 }

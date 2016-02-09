@@ -1,7 +1,11 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from django import forms
+from django.utils.translation import ugettext as _
 
-from tower import ugettext as _
-
+from oneanddone.base.widgets import MyURLField
 from oneanddone.users.models import UserProfile
 
 
@@ -18,10 +22,12 @@ class SignUpForm(forms.ModelForm):
         label=_("Username:"),
         max_length=30, regex=r'^[a-zA-Z0-9]+$',
         error_messages={'invalid': _("This value may contain only alphanumeric characters.")})
+    personal_url = MyURLField(label=_('Personal URL:'))
+    bugzilla_email = forms.EmailField(label=_('Bugzilla email address:'), required=False)
 
     class Meta:
         model = UserProfile
-        fields = ('name', 'username', 'pp_checkbox')
+        fields = ('name', 'username', 'pp_checkbox', 'personal_url', 'bugzilla_email')
 
     def save(self, *args, **kwargs):
         # We will only reach the save() method if the pp_checkbox was checked
@@ -35,7 +41,9 @@ class UserProfileForm(forms.ModelForm):
         max_length=30, regex=r'^[a-zA-Z0-9]+$',
         error_messages={'invalid': _("This value may contain only alphanumeric characters.")})
     consent_to_email = forms.BooleanField(required=False)
+    personal_url = MyURLField(label=_('Personal URL:'))
+    bugzilla_email = forms.EmailField(label=_('Bugzilla email address:'), required=False)
 
     class Meta:
         model = UserProfile
-        fields = ('name', 'username', 'consent_to_email')
+        fields = ('name', 'username', 'consent_to_email', 'personal_url', 'bugzilla_email')

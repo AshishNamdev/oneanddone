@@ -10,6 +10,22 @@ from django_filters import CharFilter, Filter
 from oneanddone.base.widgets import DateRangeWidget
 
 
+class DateRangeField(forms.MultiValueField):
+    widget = DateRangeWidget
+
+    def __init__(self, *args, **kwargs):
+        fields = (
+            forms.DateTimeField(),
+            forms.DateTimeField(),
+        )
+        super(DateRangeField, self).__init__(fields, *args, **kwargs)
+
+    def compress(self, data_list):
+        if data_list:
+            return slice(*data_list)
+        return None
+
+
 # Credit to https://gist.github.com/nkryptic/4727865
 class MultiFieldFilter(CharFilter):
     """
@@ -43,29 +59,13 @@ class MultiFieldFilter(CharFilter):
         lookups = [self._get_lookup(str(field)) for field in self.fields]
         queries = [Q(**{lookup: value}) for lookup in lookups]
         qs = qs.filter(reduce(operator.or_, queries))
-        return qs
+        return qs.distinct()
 
     def _get_lookup(self, field_name):
         for key, lookup_type in self.lookup_types:
             if field_name.startswith(key):
                 return "%s__%s" % (field_name[len(key):], lookup_type)
         return "%s__%s" % (field_name, self.lookup_type)
-
-
-class DateRangeField(forms.MultiValueField):
-    widget = DateRangeWidget
-
-    def __init__(self, *args, **kwargs):
-        fields = (
-            forms.DateTimeField(),
-            forms.DateTimeField(),
-        )
-        super(DateRangeField, self).__init__(fields, *args, **kwargs)
-
-    def compress(self, data_list):
-        if data_list:
-            return slice(*data_list)
-        return None
 
 
 class MyDateRangeFilter(Filter):

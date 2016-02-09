@@ -1,13 +1,13 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from django.contrib.auth.models import User, UserManager
+from django.core.urlresolvers import reverse
 from django.db import models
+from django.db.models import Max
+from django.utils.translation import ugettext_lazy as _lazy
 
-from caching.base import CachingManager, CachingMixin
-from tower import ugettext_lazy as _lazy
-
-from oneanddone.base.models import CachedModel
 from oneanddone.tasks.models import TaskAttempt
 
 
@@ -16,21 +16,9 @@ def user_unicode(self):
     """
     Change user string representation to use the user's email address.
     """
-    return u'{name} ({email})'.format(name=self.display_name or u'Anonymous', email=self.display_email)
+    return u'{name} ({email})'.format(
+        name=self.display_name or u'Anonymous', email=self.display_email)
 User.add_to_class('__unicode__', user_unicode)
-
-
-@property
-def user_display_name(self):
-    """
-    Return this user's display name, or 'Anonymous' if they don't have a
-    profile.
-    """
-    try:
-        return self.profile.name
-    except UserProfile.DoesNotExist:
-        return None
-User.add_to_class('display_name', user_display_name)
 
 
 @property
@@ -47,6 +35,19 @@ def user_display_email(self):
         return no_consent_email
     return no_consent_email
 User.add_to_class('display_email', user_display_email)
+
+
+@property
+def user_display_name(self):
+    """
+    Return this user's display name, or None if they don't have a
+    profile.
+    """
+    try:
+        return self.profile.name
+    except UserProfile.DoesNotExist:
+        return None
+User.add_to_class('display_name', user_display_name)
 
 
 @property
@@ -70,27 +71,62 @@ def user_attempts_requiring_notification(self):
 User.add_to_class('attempts_requiring_notification', user_attempts_requiring_notification)
 
 
-class OneAndDoneUserManager(CachingManager, UserManager):
+@classmethod
+def user_recent_users(self):
+    users = User.objects.filter(
+        profile__isnull=False,
+        taskattempt__isnull=False,
+        taskattempt__state__in=(TaskAttempt.STARTED, TaskAttempt.FINISHED)).annotate(
+        activity_date=Max('taskattempt__modified')).order_by(
+        '-activity_date')
+    return users
+User.add_to_class('recent_users', user_recent_users)
+
+
+def user_has_completed_task(self, task):
+    """Has the user completed the specified task?"""
+    return self.taskattempt_set.filter(task=task, state=TaskAttempt.FINISHED).exists()
+User.add_to_class('has_completed_task', user_has_completed_task)
+
+
+class OneAndDoneUserManager(UserManager):
     # UserManager that prefetches user profiles when getting users.
-    def get_query_set(self):
-        return super(OneAndDoneUserManager, self).get_query_set().prefetch_related('profile')
-        # Note: changed this from select_related to prefetch_related due to https://code.djangoproject.com/ticket/15040
+    def get_queryset(self):
+        return super(
+            OneAndDoneUserManager, self).get_queryset().prefetch_related('profile')
+        # Note: changed this from select_related to prefetch_related
+        # due to https://code.djangoproject.com/ticket/15040
 User.add_to_class('objects', OneAndDoneUserManager())
 
-# Add CachingMixin to User's base classes so that it can be cached.
-User.__bases__ = (CachingMixin,) + User.__bases__
 
-
-class UserProfile(CachedModel, models.Model):
+class UserProfile(models.Model):
     user = models.OneToOneField(User, related_name='profile')
-    username = models.CharField(_lazy(u'Username'), max_length=30, unique=True, null=True)
+
+    consent_to_email = models.BooleanField(default=True)
     name = models.CharField(_lazy(u'Display Name:'), max_length=255)
     privacy_policy_accepted = models.BooleanField(default=False)
-    consent_to_email = models.BooleanField(default=True)
+    username = models.CharField(_lazy(u'Username'), max_length=30, unique=True, null=True)
+    personal_url = models.URLField(blank=True, null=True, max_length=200)
+    bugzilla_email = models.EmailField(blank=True, null=True)
+
+    @property
+    def bugzilla_url(self):
+        if self.bugzilla_email:
+            activity_url = 'https://bugzilla.mozilla.org/page.cgi?'\
+                'id=user_activity.html&action=run&from=-14d&who=%s' % (self.bugzilla_email)
+            return activity_url
+        return None
 
     @property
     def email(self):
         return self.user.display_email
+
+    @property
+    def profile_url(self):
+        if self.username is not None:
+            return reverse('users.profile.details', args=[self.username])
+        else:
+            return reverse('users.profile.details', args=[self.user.id])
 
     def delete(self):
         self.user.delete()

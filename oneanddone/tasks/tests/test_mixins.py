@@ -9,40 +9,11 @@ from django.http import Http404
 from oneanddone.base.tests import TestCase
 from oneanddone.tasks import mixins
 from oneanddone.tasks.models import TaskAttempt
-from oneanddone.tasks.tests import TaskAttemptFactory
+from oneanddone.tasks.tests import FeedbackFactory, TaskAttemptFactory
 from oneanddone.users.tests import UserFactory
 
 
-class TaskMustBeAvailableMixinTests(TestCase):
-    def make_view(self, queryset, allow_expired_tasks_attr):
-        """
-        Create a fake view that applies the mixin to the given queryset
-        when get_queryset is called.
-        """
-        class BaseView(object):
-            def get_queryset(self):
-                return queryset
-
-        class View(mixins.TaskMustBeAvailableMixin, BaseView):
-            allow_expired_tasks = allow_expired_tasks_attr
-
-        return View()
-
-    def test_get_queryset(self):
-        """
-        get_queryset should filter the parent class' queryset with the
-        availability filter from Task.
-        """
-        queryset = Mock()
-        view = self.make_view(queryset, False)
-
-        with patch('oneanddone.tasks.mixins.Task') as Task:
-            eq_(view.get_queryset(), queryset.filter.return_value)
-            queryset.filter.assert_called_with(Task.is_available_filter.return_value)
-            Task.is_available_filter.assert_called_with(allow_expired=False)
-
-
-class GetUserAttemptMixinTests(TestCase):
+class GetUserAttemptForFeedbackTests(TestCase):
     def setUp(self):
         self.view = self.make_view()
 
@@ -54,7 +25,7 @@ class GetUserAttemptMixinTests(TestCase):
             def dispatch(self, request, *args, **kwargs):
                 pass
 
-        class View(mixins.GetUserAttemptMixin, BaseView):
+        class View(mixins.GetUserAttemptForFeedbackMixin, BaseView):
             pass
 
         return View()
@@ -89,3 +60,45 @@ class GetUserAttemptMixinTests(TestCase):
 
         with self.assertRaises(Http404):
             self.view.dispatch(request, pk=attempt.pk)
+
+    def test_attempt_with_feedback_raises_404(self):
+        """
+        If the current user has an attempt but feedback has already been
+        provided, return a 404.
+        """
+        user = UserFactory.create()
+        attempt = TaskAttemptFactory.create(user=user, state=TaskAttempt.FINISHED)
+        FeedbackFactory.create(attempt=attempt)
+        request = Mock(user=UserFactory.create())
+
+        with self.assertRaises(Http404):
+            self.view.dispatch(request, pk=attempt.pk)
+
+
+class TaskMustBeAvailableMixinTests(TestCase):
+    def make_view(self, queryset, allow_expired_tasks_attr):
+        """
+        Create a fake view that applies the mixin to the given queryset
+        when get_queryset is called.
+        """
+        class BaseView(object):
+            def get_queryset(self):
+                return queryset
+
+        class View(mixins.TaskMustBeAvailableMixin, BaseView):
+            allow_expired_tasks = allow_expired_tasks_attr
+
+        return View()
+
+    def test_get_queryset(self):
+        """
+        get_queryset should filter the parent class' queryset with the
+        availability filter from Task.
+        """
+        queryset = Mock()
+        view = self.make_view(queryset, False)
+
+        with patch('oneanddone.tasks.mixins.Task') as Task:
+            eq_(view.get_queryset(), queryset.filter.return_value)
+            queryset.filter.assert_called_with(Task.is_available_filter.return_value)
+            Task.is_available_filter.assert_called_with(allow_expired=False)

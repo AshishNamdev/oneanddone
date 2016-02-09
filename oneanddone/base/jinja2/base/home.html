@@ -1,0 +1,46 @@
+{# This Source Code Form is subject to the terms of the Mozilla Public
+ # License, v. 2.0. If a copy of the MPL was not distributed with this
+ # file, You can obtain one at http://mozilla.org/MPL/2.0/. #}
+{% extends 'base/base.html' %}
+
+{% block body_class %}{{ super() }} home{% endblock %}
+
+{% block content %}
+  <section class="home-header">
+    <h4>{{ _('Contribute to Mozilla - One task at a time, One day at a time.') }}</h4>
+    <p>
+      {% trans %}
+           One and Done gives users a wide variety of ways to contribute to Mozilla.
+           You can pick an easy task that only takes a few minutes &#45; or take on a bigger
+           challenge. This includes working on manual testing, automation, bug verification,
+           mobile testing and more. Tasks are from a variety of Mozilla teams &#45; so you can get involved
+           with
+      {% endtrans %}
+      {% for team in teams %}
+        <a href="{{ team.get_absolute_url() }}">{{ team.name }}</a>,
+      {% endfor %}
+      {% trans nightly_url=url('tasks.available') %}
+        <a href="{{ nightly_url }}?search=nightly&team=2">Firefox Nightly</a> and more.
+      {% endtrans %}
+    </p>
+  <p>
+    {% include 'base/recent_users.html' %}
+  </p>
+    <p class="auth-menu">
+      {% if not user.is_authenticated() %}
+        {{ browserid_login(text=_('Sign in with Mozilla Persona'), color='blue') }}
+      {% endif %}
+    </p>
+  </section>
+
+  <main class="main">
+    {% if user.is_authenticated() %}
+      <div class="billboard">
+        {% include 'base/dashboard.html' %}
+      </div>
+      {% include 'tasks/task_list_filters.html' %}
+    {% endif %}
+    {% include 'tasks/task_listing.html' %}
+  </main>
+
+  {% endblock %}
